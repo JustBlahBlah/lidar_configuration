@@ -7,6 +7,7 @@ add_executable(config)
 target_sources(config 
 	PRIVATE
 		src/main.cpp
+		src/lidar_helper.cpp
 
 	PRIVATE FILE_SET HEADERS
 	BASE_DIRS ${CMAKE_CURRENT_LIST_DIR}/include

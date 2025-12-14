@@ -7,4 +7,4 @@ int setup_serial(int fd, int baud_rate);
 bool check_strict_connection(int fd);
 void send_command(int fd, std::string name, std::vector<uint8_t> cmd);
 
-#endif LIDAR_HELPER
+#endif // LIDAR_HELPER

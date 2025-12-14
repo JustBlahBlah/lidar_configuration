@@ -26,6 +26,6 @@ struct termios2 {
 #define TCGETS2 _IOR('T', 0x2A, struct termios2)
 #define TCSETS2 _IOW('T', 0x2B, struct termios2)
 
-const char* SERIAL_PORT = "/dev/ttyUSB0";
+constexpr const char* SERIAL_PORT = "/dev/ttyUSB0";
 
 #endif //DEFINES
