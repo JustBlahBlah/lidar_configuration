@@ -1,9 +1,10 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.25)
 
 project(lidar_configuration)
 
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-
-add_executable(config src/main.cpp)
+if (EXISTS "${CMAKE_CURRENT_LIST_DIR}/src/CMakeLists.txt")
+	add_subdirectory(src)
+else()
+	message(FATL_ERROR "There is no src/CMakeLists.txt")
+endif()
 
