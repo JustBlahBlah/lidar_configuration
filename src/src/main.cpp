@@ -12,16 +12,18 @@ enum Commands {
     FRAME_RATE,
     SAVE_SETTINGS,
     BAUD_RATE,
-    RESTORE_FACTORY_SETTINGS  // Added enum
+    RESTORE_FACTORY_SETTINGS
 };
 
 enum class Frame_rate {
     UNDIFINED,
+    HZ_10,
     HZ_1000
 } fr = Frame_rate::UNDIFINED;
 
 enum class Baud_rate {
     UNDIFINED,
+    BAUD_115200,
     BAUD_256000
 } br = Baud_rate::UNDIFINED;
 
@@ -40,7 +42,7 @@ static void printHelp() {
               << "  -b, --baud <baud_rate>     Set lidar to specified baud rate\n"
               << "  -f, --frame <frame_rate>   Set lidar to specified frame rate\n"
               << "  -s, --save                 Save current settings\n"
-              << "  -R, --reset                Restore factory settings (115200 baud, 100Hz)\n" // Help text
+              << "  -r, --reset                Restore factory settings (115200 baud, 100Hz)\n"
               << "  -h, --help                 Show this help message\n"
               << std::endl;
 }
@@ -55,7 +57,6 @@ int main(int argc, char** argv) {
     std::vector<Commands> commands;
     int current_baud_rate = 0;
 
-    // --- ARGUMENT PARSING ---
     for (int i = 1; i < argc; i++) {
         std::string a = argv[i];
 
@@ -79,6 +80,10 @@ int main(int argc, char** argv) {
         } else if ((a == "--baud" || a == "-b") && i + 1 < argc) {
             int baud = std::stoi(argv[++i]);
             switch (baud) {
+		case 115200:
+		    std::cout << " -> Target Baud: 115200" << std::endl;
+	            br = Baud_rate::BAUD_115200;
+		    break;
                 case 256000:
                     std::cout << " -> Target Baud: 256000" << std::endl;
                     br = Baud_rate::BAUD_256000;
@@ -93,7 +98,11 @@ int main(int argc, char** argv) {
         } else if ((a == "--frame" || a == "-f") && i + 1 < argc) {
             int frame = std::stoi(argv[++i]);
             switch (frame) {
-                case 1000:
+		case 10:
+		    std::cout << " -> Target Frame Rate: 10Hz" << std::endl;
+		    fr = Frame_rate::HZ_10;
+		    break;
+		case 1000:
                     std::cout << " -> Target Frame Rate: 1000Hz" << std::endl;
                     fr = Frame_rate::HZ_1000;
                     break;
@@ -107,7 +116,7 @@ int main(int argc, char** argv) {
         } else if (a == "--save" || a == "-s") {
             commands.push_back(Commands::SAVE_SETTINGS);
 
-        } else if (a == "--reset" || a == "-R") { // New Flag
+        } else if (a == "--reset" || a == "-r") {
             std::cout << " -> Queueing Factory Reset" << std::endl;
             commands.push_back(Commands::RESTORE_FACTORY_SETTINGS);
 
@@ -117,7 +126,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    // --- EXECUTION ---
     if (commands.empty()) {
         std::cerr << "No commands provided. Use -h for help.\n";
         return 0;
@@ -134,8 +142,10 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    std::cout << "setup serial" << std::endl;
     setup_serial(serial_fd, current_baud_rate);
-
+	
+    std::cout << "Before check connection" << std::endl;
     if (check_strict_connection(serial_fd)) {
         std::cout << "Connection confirmed at " << current_baud_rate << " baud." << std::endl;
     } else {
@@ -144,15 +154,15 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    std::cout << "Before loop" << std::endl;
     for (const auto& cmd : commands) {
         switch (cmd) {
             case Commands::ENABLE_OUTPUT:
                 send_command(serial_fd, "Enable Output", {0x5A, 0x05, 0x07, 0x01});
                 break;
 
-            case Commands::RESTORE_FACTORY_SETTINGS: // Logic for Reset
+            case Commands::RESTORE_FACTORY_SETTINGS:
                 std::cout << "\n[RESET] Restoring Factory Settings..." << std::endl;
-                // Command: 5A 04 10 6E
                 send_command(serial_fd, "Factory Reset", {0x5A, 0x04, 0x10, 0x6E});
                 std::cout << "LiDAR will reset to 115200 baud / 100Hz." << std::endl;
                 break;
@@ -169,7 +179,29 @@ int main(int argc, char** argv) {
 
             case Commands::BAUD_RATE:
                 switch (br) {
-                    case Baud_rate::BAUD_256000:
+                    case Baud_rate::BAUD_115200:
+                        if (current_baud_rate != 115200) {
+                            std::cout << "\n[UPGRADE] Switching to 115200 baud..." << std::endl;
+                            send_command(serial_fd, "Set Baud 115200", {0x5A, 0x08, 0x06, 0x00, 0xC2, 0x01, 0x00, 0x2B});
+                            send_command(serial_fd, "Save Settings", {0x5A, 0x04, 0x11, 0x6F});
+                            close(serial_fd);
+                            sleep(2); 
+
+                            // Reconnect
+                            serial_fd = open(SERIAL_PORT, O_RDWR | O_NOCTTY | O_SYNC);
+                            setup_serial(serial_fd, 115200);
+                            
+                            if (!check_strict_connection(serial_fd)) {
+                                std::cerr << " [ERROR] Failed to reconnect at 115200." << std::endl;
+                                return 1;
+                            }
+                            current_baud_rate = 115200; 
+                            std::cout << " [SUCCESS] Upgrade complete." << std::endl;
+                        } else {
+                            std::cout << "Already at 115200 baud." << std::endl;
+                        }
+                        break;
+		    case Baud_rate::BAUD_256000:
                         if (current_baud_rate != 256000) {
                             std::cout << "\n[UPGRADE] Switching to 256000 baud..." << std::endl;
                             send_command(serial_fd, "Set Baud 256000", {0x5A, 0x08, 0x06, 0x00, 0xE8, 0x03, 0x00});
@@ -198,7 +230,10 @@ int main(int argc, char** argv) {
 
             case Commands::FRAME_RATE:
                 switch (fr) {
-                    case Frame_rate::HZ_1000:
+                    case Frame_rate::HZ_10:
+                         send_command(serial_fd, "Set 10Hz", {0x5A, 0x06, 0x03, 0x0A, 0x00, 0x6D});
+                         break;
+		    case Frame_rate::HZ_1000:
                          send_command(serial_fd, "Set 1000Hz", {0x5A, 0x06, 0x03, 0xE8, 0x03});
                          break;
                     default:
