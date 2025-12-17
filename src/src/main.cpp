@@ -24,8 +24,8 @@ enum class Frame_rate {
 
 enum class Baud_rate {
     UNDIFINED,
-    BAUD_115200,
-    BAUD_256000
+    _BAUD_115200,
+    _BAUD_256000
 } br = Baud_rate::UNDIFINED;
 
 enum class Output_format {
@@ -91,11 +91,11 @@ int main(int argc, char** argv) {
             switch (baud) {
                 case 115200:
                     std::cout << " -> Target Baud: 115200" << std::endl;
-                    br = Baud_rate::BAUD_115200;
+                    br = Baud_rate::_BAUD_115200;
                     break;
                 case 256000:
                     std::cout << " -> Target Baud: 256000" << std::endl;
-                    br = Baud_rate::BAUD_256000;
+                    br = Baud_rate::_BAUD_256000;
                     break;
                 default:
                     std::cout << " -> Baud Rate Undefined/Unsupported" << std::endl;
@@ -145,18 +145,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    // --- ОТКРЫТИЕ ПОРТА ---
-    // Используем универсальную функцию open_port
     SerialPortHandle serial_fd = open_port(port_name.c_str());
 
-    // Проверяем ошибку через макрос из defines.hpp
     if (serial_fd == INVALID_PORT_VALUE) {
         std::cerr << "Error opening port " << port_name << std::endl;
         return 1;
     }
 
     std::cout << "Setup serial..." << std::endl;
-    // Настраиваем скорость (termios для Linux, DCB для Windows внутри функции)
     if (setup_serial(serial_fd, current_baud_rate) != 0) {
         std::cerr << "Error setting up serial port params." << std::endl;
         close_port(serial_fd);
@@ -197,20 +193,17 @@ int main(int argc, char** argv) {
 
             case Commands::BAUD_RATE:
                 switch (br) {
-                    case Baud_rate::BAUD_115200:
+                    case Baud_rate::_BAUD_115200:
                         if (current_baud_rate != 115200) {
                             std::cout << "\n[DOWNGRADE] Switching to 115200 baud..." << std::endl;
                             send_command(serial_fd, "Set Baud 115200", {0x5A, 0x08, 0x06, 0x00, 0xC2, 0x01, 0x00});
                             send_command(serial_fd, "Save Settings", {0x5A, 0x04, 0x11, 0x6F});
                             
-                            // Закрываем порт
                             close_port(serial_fd);
                             std::cout << "Waiting for reboot..." << std::endl;
                             
-                            // Кроссплатформенная пауза
                             std::this_thread::sleep_for(std::chrono::seconds(2));
 
-                            // Переподключаемся
                             serial_fd = open_port(port_name.c_str());
                             if (serial_fd == INVALID_PORT_VALUE) {
                                 std::cerr << "Failed to reopen port." << std::endl;
@@ -229,7 +222,7 @@ int main(int argc, char** argv) {
                         }
                         break;
                         
-                    case Baud_rate::BAUD_256000:
+                    case Baud_rate::_BAUD_256000:
                         if (current_baud_rate != 256000) {
                             std::cout << "\n[UPGRADE] Switching to 256000 baud..." << std::endl;
                             send_command(serial_fd, "Set Baud 256000", {0x5A, 0x08, 0x06, 0x00, 0xE8, 0x03, 0x00});
@@ -239,7 +232,6 @@ int main(int argc, char** argv) {
                             std::cout << "Waiting for reboot..." << std::endl;
                             std::this_thread::sleep_for(std::chrono::seconds(2)); 
 
-                            // Переподключаемся
                             serial_fd = open_port(port_name.c_str());
                             if (serial_fd == INVALID_PORT_VALUE) {
                                 std::cerr << "Failed to reopen port." << std::endl;
