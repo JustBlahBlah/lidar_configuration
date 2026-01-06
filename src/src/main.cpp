@@ -16,7 +16,12 @@ enum Commands {
   RESTORE_FACTORY_SETTINGS
 };
 
-enum class Frame_rate { UNDIFINED, HZ_10, HZ_1000 } fr = Frame_rate::UNDIFINED;
+enum class Frame_rate {
+  UNDIFINED,
+  HZ_10,
+  HZ_50,
+  HZ_1000
+} fr = Frame_rate::UNDIFINED;
 
 enum class Baud_rate {
   UNDIFINED,
@@ -108,6 +113,10 @@ int main(int argc, char **argv) {
       case 10:
         std::cout << " -> Target Frame Rate: 10Hz" << std::endl;
         fr = Frame_rate::HZ_10;
+        break;
+      case 50:
+        std::cout << " -> Target Frame Rate: 50Hz" << std::endl;
+        fr = Frame_rate::HZ_50;
         break;
       case 1000:
         std::cout << " -> Target Frame Rate: 1000Hz" << std::endl;
@@ -261,6 +270,9 @@ int main(int argc, char **argv) {
       switch (fr) {
       case Frame_rate::HZ_10:
         send_command(serial_fd, "Set 10Hz", {0x5A, 0x06, 0x03, 0x0A, 0x00});
+        break;
+      case Frame_rate::HZ_50:
+        send_command(serial_fd, "Set 50Hz", {0x5A, 0x06, 0x03, 0x32, 0x00});
         break;
       case Frame_rate::HZ_1000:
         send_command(serial_fd, "Set 1000Hz", {0x5A, 0x06, 0x03, 0xE8, 0x03});
