@@ -21,6 +21,7 @@ enum class Frame_rate {
   HZ_10,
   HZ_50,
   HZ_100,
+  HZ_200,
   HZ_1000
 } fr = Frame_rate::UNDIFINED;
 
@@ -122,6 +123,10 @@ int main(int argc, char **argv) {
       case 100:
         std::cout << " -> Target Frame Rate: 100Hz" << std::endl;
         fr = Frame_rate::HZ_100;
+        break;
+      case 200:
+        std::cout << " -> Target Frame Rate: 200Hz" << std::endl;
+        fr = Frame_rate::HZ_200;
         break;
       case 1000:
         std::cout << " -> Target Frame Rate: 1000Hz" << std::endl;
@@ -281,6 +286,9 @@ int main(int argc, char **argv) {
         break;
       case Frame_rate::HZ_100:
         send_command(serial_fd, "Set 100Hz", {0x5A, 0x06, 0x03, 0x64, 0x00});
+        break;
+      case Frame_rate::HZ_200:
+        send_command(serial_fd, "Set 200Hz", {0x5A, 0x06, 0x03, 0xC8, 0x00});
         break;
       case Frame_rate::HZ_1000:
         send_command(serial_fd, "Set 1000Hz", {0x5A, 0x06, 0x03, 0xE8, 0x03});
